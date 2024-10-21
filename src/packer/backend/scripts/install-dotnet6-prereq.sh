@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Install prerequisites
+
 # Get Ubuntu version
 repo_version="22.04"
 
