@@ -9,8 +9,13 @@ data "aws_ami" "frontend" {
   }
 }
 
-data "aws_key_pair" "temp" {
-  key_name = "temp_key"
+# data "aws_key_pair" "temp" {
+#   key_name = "temp_key"
+# }
+
+resource "aws_key_pair" "temp" {
+  key_name   = "temp_key"
+  public_key = var.ssh_public_key
 }
 
 resource "aws_network_interface" "frontend" {
@@ -35,7 +40,7 @@ resource "aws_instance" "frontend" {
 
   ami           = data.aws_ami.frontend.id
   instance_type = var.frontend_instance_type
-  key_name      = data.aws_key_pair.temp.key_name
+  key_name      = aws_key_pair.temp.key_name
   user_data     = data.cloudinit_config.frontend.rendered
 
   network_interface {

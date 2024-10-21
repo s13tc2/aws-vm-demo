@@ -31,3 +31,7 @@ variable "vpc_cidr_block" {
 variable "az_count" {
   type = number
 }
+variable "ssh_public_key" {
+  description = "The public key to use for SSH access to the instances"
+  type        = string
+}
