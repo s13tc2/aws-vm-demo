@@ -9,7 +9,6 @@ terraform {
       version = "~> 2.3.2"
     }
   }
-  // foo
   backend "s3" {
   }
 }
