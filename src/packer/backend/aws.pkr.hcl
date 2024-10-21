@@ -1,4 +1,4 @@
-data "amazon-ami" "ubuntu1204" {
+data "amazon-ami" "ubuntu2204" {
   filters = {
     architecture        = "x86_64"
     virtualization-type = "hvm"
@@ -17,5 +17,14 @@ source "amazon-ebs" "vm" {
   ssh_username  = "ubuntu"
   ssh_interface = "public_ip"
   communicator  = "ssh"
-  source_ami    = data.amazon-ami.ubuntu1204.id
+  source_ami    = data.amazon-ami.ubuntu2204.id
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sleep 30
+              sudo apt-get update
+              sudo apt-get install -y gnupg ca-certificates
+              sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3B4FE6ACC0B21F32
+              sudo apt-get update
+              EOF
 }
