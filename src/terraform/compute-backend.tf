@@ -31,7 +31,7 @@ resource "aws_instance" "backend" {
 
   ami           = data.aws_ami.backend.id
   instance_type = var.backend_instance_type
-  key_name      = data.aws_key_pair.temp.key_name
+  key_name      = aws_key_pair.temp.key_name
 
   network_interface {
     network_interface_id = aws_network_interface.backend[each.key].id
