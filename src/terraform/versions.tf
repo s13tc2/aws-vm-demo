@@ -9,7 +9,6 @@ terraform {
       version = "~> 2.3.2"
     }
   }
-  // run it back turbo 2
   backend "s3" {
   }
 }
