@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Install the prerequisites for .NET 6
-
 # Get Ubuntu version
 repo_version="22.04"
 
