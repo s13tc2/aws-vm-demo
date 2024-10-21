@@ -11,6 +11,7 @@ env:
   PACKER_VERSION: '1.9.4'
   WORKING_DIRECTORY: "./src/packer/backend"
   DOTNET_WORKING_DIRECTORY: "./src/dotnet/backend/FleetAPI"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,7 +27,7 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
-      - name: Display structure of downloaded files
+      - name: Display structure of built files
         run: ls -R
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Publish
@@ -37,9 +38,9 @@ jobs:
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Generate the Deployment Package
         run: |
-          zip -r ../deployment.zip ./
+          zip -r deployment.zip ./
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}/publish
-      - name: Display structure of downloaded files
+      - name: Display structure of deployment package
         run: ls -R
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Upload Deployment Package
@@ -52,19 +53,23 @@ jobs:
           echo "Listing artifacts:"
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.artifacts[] | {name: .name, size: .size_in_bytes, expires_at: .expires_at}'
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.'
 
   packer:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: List Artifacts
+      - name: Wait for artifacts to be available
+        run: sleep 30
+      - name: List Artifacts and Debug Info
         run: |
           echo "Listing artifacts:"
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.artifacts[] | {name: .name, size: .size_in_bytes, expires_at: .expires_at}'
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.'
+          echo "GitHub context:"
+          echo '${{ toJson(github) }}'
       - uses: actions/download-artifact@v3
         with:
           name: dotnet-deployment
