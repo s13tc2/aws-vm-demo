@@ -27,78 +27,74 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
-      - name: Display structure of built files
-        run: ls -R
-        working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Publish
-        run: |
-          pwd
-          ls
-          dotnet publish ./FleetAPI.csproj -c Release -o ./publish
+        run: dotnet publish ./FleetAPI.csproj -c Release -o ./publish
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Generate the Deployment Package
         run: |
-          zip -r deployment.zip ./
-        working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}/publish
-      - name: Display structure of deployment package
-        run: ls -R
+          cd publish
+          zip -r ../deployment.zip .
+        working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
+      - name: Verify Deployment Package
+        run: |
+          ls -lh deployment.zip
+          echo "Deployment package size: $(du -h deployment.zip | cut -f1)"
         working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
       - name: Upload Deployment Package
         uses: actions/upload-artifact@v4
         with:
           name: dotnet-deployment
           path: ${{ env.DOTNET_WORKING_DIRECTORY }}/deployment.zip
-      - name: List Artifacts
+      - name: Verify Artifact Upload
         run: |
-          echo "Listing artifacts:"
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          echo "Verifying artifact upload:"
+          artifacts=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.'
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts")
+          echo "$artifacts" | jq '.'
+          if echo "$artifacts" | jq -e '.artifacts[] | select(.name == "dotnet-deployment")' > /dev/null; then
+            echo "Artifact 'dotnet-deployment' found and uploaded successfully."
+          else
+            echo "Error: Artifact 'dotnet-deployment' not found!"
+            exit 1
+          fi
 
   packer:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Wait for artifacts to be available
-        run: sleep 30
-      - name: List Artifacts and Debug Info
-        run: |
-          echo "Listing artifacts:"
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.'
-          echo "GitHub context:"
-          echo '${{ toJson(github) }}'
-      - uses: actions/download-artifact@v3
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
         with:
           name: dotnet-deployment
           path: ./deployment-package
-      - name: List Downloaded Files
-        run: ls -R ./deployment-package
-      - name: Check Files
+      - name: Verify Downloaded Artifact
         run: |
-          pwd
-          ls -R ./deployment-package
+          ls -lh ./deployment-package
+          if [ -f "./deployment-package/deployment.zip" ]; then
+            echo "Deployment package found:"
+            echo "Size: $(du -h ./deployment-package/deployment.zip | cut -f1)"
+          else
+            echo "Error: deployment.zip not found in the downloaded artifact!"
+            exit 1
+          fi
+      - name: Copy Deployment Package
+        run: |
+          cp ./deployment-package/deployment.zip ${{ env.WORKING_DIRECTORY }}/deployment.zip
+      - name: Verify Copied Deployment Package
+        run: |
+          ls -lh ${{ env.WORKING_DIRECTORY }}/deployment.zip
+          echo "Copied deployment package size: $(du -h ${{ env.WORKING_DIRECTORY }}/deployment.zip | cut -f1)"
       - id: image-version
         name: Generate Version Number
         run: |
           echo "version=$(date +'%Y.%m').${{ github.run_number }}" >> "$GITHUB_OUTPUT"
       - id: agent-ipaddress
-        name: Check Path
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+        name: Get Agent IP Address
         run: |
           ipaddress=$(curl -s http://checkip.amazonaws.com)
-          echo $ipaddress
           echo "ipaddress=$ipaddress" >> "$GITHUB_OUTPUT"
-      - name: Copy Deployment Package
-        run: |
-          cp ./deployment-package/deployment.zip ${{ env.WORKING_DIRECTORY }}/deployment.zip
-      - name: Check Files
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        run: |
-          pwd
-          ls
       - id: setup
         name: Setup `packer`
         uses: hashicorp/setup-packer@main
