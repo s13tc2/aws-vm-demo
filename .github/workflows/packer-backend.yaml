@@ -47,8 +47,6 @@ jobs:
         with:
           name: dotnet-deployment
           path: ${{ env.DOTNET_WORKING_DIRECTORY }}/deployment.zip
-      - name: Output Artifact Name
-        run: echo "ARTIFACT_NAME=dotnet-deployment" >> $GITHUB_ENV
       - name: List Artifacts
         run: |
           echo "Listing artifacts:"
@@ -68,10 +66,10 @@ jobs:
               -H "Accept: application/vnd.github.v3+json" \
               "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | jq '.artifacts[] | {name: .name, size: .size_in_bytes, expires_at: .expires_at}'
       - name: Echo Artifact Name
-        run: echo "Attempting to download artifact: ${{ env.ARTIFACT_NAME }}"
+        run: echo "Attempting to download artifact: dotnet-deployment"
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: dotnet-deployment
           path: ./deployment-package
       - name: List Downloaded Files
         run: ls -R ./deployment-package
