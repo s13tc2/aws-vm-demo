@@ -50,9 +50,9 @@ jobs:
       - name: List Artifacts
         run: |
           echo "Listing artifacts:"
-          gh run list --limit 1 --json conclusion,databaseId,headSha,updatedAt,jobs --jq '.[] | .jobs[] | .steps[] | select(.name == "Upload Artifact") | .outputs'
+          gh run view ${{ github.run_id }} --json artifacts --jq '.artifacts[] | {name: .name, size: .size_in_bytes, expires_at: .expires_at}'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   packer:
     needs: [build]
